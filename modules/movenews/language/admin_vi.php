@@ -38,6 +38,19 @@ $lang_module['main'] = 'Công cụ sao chép bài viết';
 $lang_module['from_mod'] = 'Từ module';
 $lang_module['to_mod'] = 'Đến module';
 $lang_module['cat'] = 'Chuyên mục';
+$lang_module['cat_main'] = 'Chính';
+$lang_module['stt'] = 'STT';
+$lang_module['news'] = 'Bài viết';
+$lang_module['copystatus'] = 'Trạng thái';
+$lang_module['wait'] = 'Hãy đợi! Vui lòng không thoát. Hệ thống còn tiếp tục thực hiện đến khi có thông báo hoàn tất';
+$lang_module['complete'] = 'Thực hiện hoàn tất. Tổng số bài viết đã thao tác là <strong>%s</strong>';
+$lang_module['isexists'] = 'Đã tồn tại, bỏ qua';
+
+$lang_module['err1'] = 'Vui lòng chọn module nguồn (từ module)';
+$lang_module['err2'] = 'Vui lòng chọn module đích (đến module)';
+$lang_module['err3'] = 'Vui lòng chọn chuyên mục module nguồn (từ module)';
+$lang_module['err4'] = 'Vui lòng chọn chuyên mục module đích (đến module)';
+$lang_module['err5'] = 'Vui lòng chọn chuyên mục chính module đích (đến module)';
 
 $lang_module['note1'] = 'Lưu ý';
 $lang_module['note2'] = 'Bài viết trùng ở module đích sẽ được bỏ qua. Bài viết được xem là trùng khi có cùng tiêu đề và thời gian đăng';
