@@ -45,6 +45,7 @@ $lang_module['copystatus'] = 'Trạng thái';
 $lang_module['wait'] = 'Hãy đợi! Vui lòng không thoát. Hệ thống còn tiếp tục thực hiện đến khi có thông báo hoàn tất';
 $lang_module['complete'] = 'Thực hiện hoàn tất. Tổng số bài viết đã thao tác là <strong>%s</strong>';
 $lang_module['isexists'] = 'Đã tồn tại, bỏ qua';
+$lang_module['iscopyed'] = 'Đã sao chép';
 
 $lang_module['err1'] = 'Vui lòng chọn module nguồn (từ module)';
 $lang_module['err2'] = 'Vui lòng chọn module đích (đến module)';

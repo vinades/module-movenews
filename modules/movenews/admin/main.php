@@ -88,6 +88,10 @@ if ($is_submit) {
             $where[] = 'FIND_IN_SET(' . $catid . ', listcatid)';
         }
 
+        // Lấy nhóm tin mặc định để đưa vào
+        $sql = "SELECT bid FROM " . NV_PREFIXLANG . "_" . $site_mods[$request['tm']]['module_data'] . "_block_cat WHERE adddefault=1";
+        $blocks = $db->query($sql)->fetchAll(PDO::FETCH_COLUMN);
+
         $sql = 'SELECT * FROM ' . NV_PREFIXLANG . '_' . $site_mods[$request['fm']]['module_data'] . '_rows
         WHERE (' . implode(' OR ', $where) . ') ORDER BY id ASC LIMIT 100 OFFSET ' . $offset;
         $result = $db->query($sql);
@@ -104,6 +108,7 @@ if ($is_submit) {
                 $array[$row['id']]['status'] = $lang_module['isexists'];
             } else {
                 $num_updated++;
+                $array[$row['id']]['status'] = $lang_module['iscopyed'];
 
                 // Lấy và tạo dòng sự kiện
                 $topicid = 0;
@@ -238,8 +243,171 @@ if ($is_submit) {
                     :hitstotal, :hitscm, :total_rating, :click_rating, :instant_active,
                     :instant_template, :instant_creatauto
                 )";
+                $array_insert = [];
+                $array_insert['admin_id'] = $row['admin_id'];
+                $array_insert['author'] = $row['author'];
+                $array_insert['addtime'] = $row['addtime'];
+                $array_insert['edittime'] = $row['edittime'];
+                $array_insert['status'] = $row['status'];
+                $array_insert['weight'] = $row['weight'];
+                $array_insert['publtime'] = $row['publtime'];
+                $array_insert['exptime'] = $row['exptime'];
+                $array_insert['archive'] = $row['archive'];
+                $array_insert['title'] = $row['title'];
+                $array_insert['alias'] = $row['alias'];
+                $array_insert['hometext'] = $row['hometext'];
+                $array_insert['homeimgfile'] = $homeimgfile;
+                $array_insert['homeimgalt'] = $row['homeimgalt'];
+                $array_insert['homeimgthumb'] = $homeimgthumb;
+                $array_insert['inhome'] = $row['inhome'];
+                $array_insert['allowed_comm'] = $row['allowed_comm'];
+                $array_insert['allowed_rating'] = $row['allowed_rating'];
+                $array_insert['external_link'] = $row['external_link'];
+                $array_insert['hitstotal'] = $row['hitstotal'];
+                $array_insert['hitscm'] = $row['hitscm'];
+                $array_insert['total_rating'] = $row['total_rating'];
+                $array_insert['click_rating'] = $row['click_rating'];
+                $array_insert['instant_active'] = $row['instant_active'];
+                $array_insert['instant_template'] = $row['instant_template'];
+                $array_insert['instant_creatauto'] = $row['instant_creatauto'];
 
-                // Lấy và tạo từ khóa
+                $new_id = $db->insert_id($sql, 'id', $array_insert);
+                if (!$new_id) {
+                    continue;
+                }
+
+                // Chép vào bảng cat
+                foreach ($request['tc'] as $catid) {
+                    $sql = "INSERT IGNORE INTO " . NV_PREFIXLANG . "_" . $site_mods[$request['tm']]['module_data'] . "_" . $catid . "
+                    SELECT * FROM " . NV_PREFIXLANG . "_" . $site_mods[$request['tm']]['module_data'] . "_rows WHERE id=" . $new_id;
+                    $db->query($sql);
+                }
+
+                // Lấy detail để xử lý
+                $sql = "SELECT * FROM " . NV_PREFIXLANG . "_" . $site_mods[$request['fm']]['module_data'] . "_detail WHERE id=" . $row['id'];
+                $detail = $db->query($sql)->fetch();
+                if (!empty($detail)) {
+                    $files = [];
+                    if (!empty($detail['files'])) {
+                        $detail['files'] = array_filter(array_map('trim', explode(',', $detail['files'])));
+                        foreach ($detail['files'] as $file) {
+                            $file_path = $site_mods[$request['fm']]['module_upload'] . '/' . $file;
+
+                            // File gốc
+                            $file1 = NV_ROOTDIR . '/' . NV_UPLOADS_DIR . '/' . $file_path;
+
+                            // Thư mục
+                            $folder = explode('/', $file_path);
+                            if (sizeof($folder) > 2) {
+                                unset($folder[sizeof($folder) - 1], $folder[0]);
+                                $folder = array_values($folder);
+                            } else {
+                                $folder = [];
+                            }
+
+                            $copy1 = copyImagesNews($file1, NV_ROOTDIR . '/' . NV_UPLOADS_DIR . '/' . $site_mods[$request['tm']]['module_upload'], $folder);
+                            if ($copy1 > 0) {
+                                $files[] = $file;
+                            }
+                        }
+                    }
+                    $files = empty($files) ? '' : implode(',', $files);
+
+                    // Lưu detail
+                    $sql = "INSERT IGNORE INTO " . NV_PREFIXLANG . "_" . $site_mods[$request['tm']]['module_data'] . "_detail (
+                        id, titlesite, description, bodyhtml, keywords, sourcetext,
+                        files, imgposition, layout_func, copyright, allowed_send, allowed_print, allowed_save
+                    ) VALUES (
+                        " . $new_id . ", " . $db->quote($detail['titlesite']) . ",
+                        " . $db->quote($detail['description']) . ",
+                        " . $db->quote($detail['bodyhtml']) . ",
+                        " . $db->quote($detail['keywords']) . ",
+                        " . $db->quote($detail['sourcetext']) . ",
+                        " . $db->quote($files) . ",
+                        " . $detail['imgposition'] . ",
+                        " . $db->quote($detail['layout_func']) . ",
+                        " . $detail['copyright'] . ",
+                        " . $detail['allowed_send'] . ",
+                        " . $detail['allowed_print'] . ",
+                        " . $detail['allowed_save'] . "
+                    )";
+                    $db->query($sql);
+                }
+
+                // Lấy, tạo từ khóa và lưu từ khóa
+                $sql = "SELECT tb1.keyword, tb2.* FROM
+                " . NV_PREFIXLANG . "_" . $site_mods[$request['fm']]['module_data'] . "_tags_id tb1
+                INNER JOIN " . NV_PREFIXLANG . "_" . $site_mods[$request['fm']]['module_data'] . "_tags tb2 ON tb1.tid=tb2.tid
+                WHERE tb1.id=" . $row['id'];
+                $result_tag = $db->query($sql);
+
+                while ($tag = $result_tag->fetch()) {
+                    $tag_id = 0;
+
+                    // Kiểm tra trùng
+                    $sql = "SELECT tid FROM " . NV_PREFIXLANG . "_" . $site_mods[$request['tm']]['module_data'] . "_tags
+                    WHERE alias=" . $db->quote($tag['alias']);
+                    $exits_tag = $db->query($sql)->fetchColumn();
+                    if ($exits_tag) {
+                        $tag_id = $exits_tag;
+                    } else {
+                        // Thêm mới
+                        $sql = "INSERT INTO " . NV_PREFIXLANG . "_" . $site_mods[$request['tm']]['module_data'] . "_tags (
+                            numnews, alias, image, description, keywords
+                        ) VALUES (
+                            0, :alias, '', :description, :keywords
+                        )";
+                        $array_insert = [];
+                        $array_insert['alias'] = $tag['alias'];
+                        $array_insert['description'] = $tag['description'];
+                        $array_insert['keywords'] = $tag['keywords'];
+
+                        $new_tag = $db->insert_id($sql, 'tid', $array_insert);
+                        if ($new_tag) {
+                            $tag_id = $new_tag;
+                        }
+                    }
+                    if ($tag_id) {
+                        // Gắn tag với bài viết
+                        $sql = "INSERT IGNORE INTO " . NV_PREFIXLANG . "_" . $site_mods[$request['tm']]['module_data'] . "_tags_id (
+                            id, tid, keyword
+                        ) VALUES (
+                            " . $new_id . ", " . $tag_id . ", " . $db->quote($tag['keywords']) . "
+                        )";
+                        $db->query($sql);
+
+                        // Cập nhật số tin của tag
+                        $sql = "UPDATE " . NV_PREFIXLANG . "_" . $site_mods[$request['tm']]['module_data'] . "_tags
+                        SET numnews=(
+                            SELECT COUNT(id) FROM " . NV_PREFIXLANG . "_" . $site_mods[$request['tm']]['module_data'] . "_tags_id
+                            WHERE id=" . $new_id . "
+                        ) WHERE tid=" . $tag_id;
+                        $db->query($sql);
+                    }
+                }
+
+                // Lưu nhóm tin mặc đinh
+                if (!empty($blocks)) {
+                    foreach ($blocks as $bid) {
+                        // Set block mặc định
+                        $sql = "INSERT IGNORE INTO " . NV_PREFIXLANG . "_" . $site_mods[$request['tm']]['module_data'] . "_block (
+                            bid, id, weight
+                        ) VALUES (
+                            " . $bid . ", " . $new_id . ", 0
+                        )";
+                        if ($db->exec($sql)) {
+                            // Update lại thứ tự
+                            $sql = "UPDATE " . NV_PREFIXLANG . "_" . $site_mods[$request['tm']]['module_data'] . "_block
+                            SET weight=weight+1 WHERE bid=" . $bid;
+                            $db->query($sql);
+
+                            // Bỏ row quá 100
+                            $sql = "DELETE FROM " . NV_PREFIXLANG . "_" . $site_mods[$request['tm']]['module_data'] . "_block
+                            WHERE weight>100 AND bid=" . $bid;
+                            $db->query($sql);
+                        }
+                    }
+                }
             }
         }
 

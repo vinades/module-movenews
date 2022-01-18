@@ -14,6 +14,12 @@ if (!defined('NV_ADMIN') or !defined('NV_MAINFILE') or !defined('NV_IS_MODADMIN'
 
 define('NV_IS_FILE_ADMIN', true);
 
+/**
+ * @param string $file
+ * @param string $to_path
+ * @param array $folder
+ * @return number
+ */
 function copyImagesNews($file, $to_path, $folder)
 {
     global $db;
